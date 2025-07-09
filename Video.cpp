@@ -25,6 +25,12 @@ Video::Color Video::backgroundColor;
 int Video::dmaChannels[DmaChannelCount];
 uint16_t Video::dmaBuffer[DmaChannelCount][SamplesPerRaster] __attribute__ ((aligned (4)));
 volatile uint16_t Video::currentRaster;
+volatile int Video::currentY;
+volatile uint8_t *Video::pTileRow;
+volatile int Video::yMod;
+volatile uint8_t Video::lineBuffer[XResolution];
+uint8_t Video::tileMap[XTileCount * YTileCount];
+uint8_t Video::tilePattern[2 * TileHeight * 256];
 
 void Video::Initialize()
 {
@@ -126,13 +132,40 @@ void Video::MakeDmaBuffer(uint16_t* pBuffer, uint16_t raster)
         raster >= VSyncRasterCount + BlankingRasterCount &&
         raster < VSyncRasterCount + BlankingRasterCount + YResolution
     ) {
-        p += HStartPosition;
-        for (auto i = 0; i < XResolution / 2; ++i) {
-            const auto& color = colors[(i >> 2) & 15];//
-            *p++ = color.Values()[0];
-            *p++ = color.Values()[1];
-            *p++ = color.Values()[2];
-            *p++ = color.Values()[3];
+        if (raster == VSyncRasterCount + BlankingRasterCount) {
+            currentY = 0;
+            pTileRow = tileMap;
+            yMod = 0;
+        }
+        {
+            auto pLine = lineBuffer;
+            auto pTile = pTileRow;
+            for (auto tileX = 0; tileX < XTileCount; ++tileX) {
+                const auto* pPattern = tilePattern + (static_cast<uint16_t>(*pTile++) << 4);
+                pPattern += ((currentY & 7) << 1);
+                auto b = *pPattern++;
+                *pLine++ = b >> 4;
+                *pLine++ = b & 0x0f;
+                b = *pPattern++;
+                *pLine++ = b >> 4;
+                *pLine++ = b & 0x0f;
+            }
+        }
+        {
+            auto pLine = lineBuffer;
+            p += HStartPosition;
+            for (auto i = 0; i < XResolution; ++i) {
+                const auto& color = colors[*pLine++];
+                *p++ = color.Values()[0];
+                *p++ = color.Values()[1];
+                *p++ = color.Values()[2];
+                *p++ = color.Values()[3];
+            }
+        }
+        ++currentY;
+        if (++yMod >= TileHeight) {
+            pTileRow += XTileCount;
+            yMod = 0;
         }
     }
     else if (
@@ -140,7 +173,7 @@ void Video::MakeDmaBuffer(uint16_t* pBuffer, uint16_t raster)
         raster == VSyncRasterCount + BlankingRasterCount + YResolution + 1
     ) {
         p += HStartPosition;
-        for (auto i = 0; i < XResolution * 2; ++i) {
+        for (auto i = 0; i < XResolution * 4; ++i) {
             *p++ = 2;
         }
     }
