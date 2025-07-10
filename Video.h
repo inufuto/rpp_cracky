@@ -1,3 +1,4 @@
+#pragma once
 #include "Config.h"
 
 class Video
@@ -14,14 +15,23 @@ class Video
         void SetRgb(uint8_t r, uint8_t g, uint8_t b);
         const auto& Values() const { return values; }
     };
+    struct Sprite {
+        uint8_t y;
+        uint8_t x;
+        uint8_t pattern;
+    };
 private:
+    static constexpr auto ColorCount = 16;
     static constexpr auto TileWidth = 4;
     static constexpr auto TileHeight = 8;
     static constexpr auto XTileCount = 40;
     static constexpr auto YTileCount = 25;
     static constexpr auto XResolution = TileWidth * XTileCount;
     static constexpr auto YResolution = TileHeight * YTileCount;
-    static constexpr auto ColorCount = 16;
+    static constexpr auto SpriteWidth = TileWidth * 2;
+    static constexpr auto SpriteHeight = TileHeight * 2;
+    static constexpr auto SpriteCount = 32;
+    static constexpr auto MaxHorizontalSpriteCount = 16;
 
     static constexpr auto DmaChannelCount = 2;
     static constexpr auto SamplesPerRaster = 908; // 227 * 4
@@ -43,10 +53,14 @@ private:
     static volatile uint8_t lineBuffer[];
     static uint8_t tileMap[];
     static uint8_t tilePattern[];
+    static Sprite sprites[SpriteCount];
+    static uint8_t spritePattern[];
 public:
     static void Initialize();
     static auto TileMap() { return tileMap; }
     static auto TilePattern() { return tilePattern; }
+    static void ClearSprites();
+    static void ShowSprite(uint8_t index, uint8_t x, uint8_t y, uint8_t pattern);
 private:
     static void InitializeColors();
     static void InitializePwmDma();

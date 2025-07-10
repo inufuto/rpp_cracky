@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(bbb bbb.cpp Video.cpp)
+add_executable(bbb bbb.cpp Video.cpp Sound.cpp)
 
 pico_set_program_name(bbb "bbb")
 pico_set_program_version(bbb "0.1")

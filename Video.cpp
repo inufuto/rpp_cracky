@@ -5,6 +5,7 @@
 #include "hardware/pwm.h"
 #include "hardware/dma.h"
 #include "Video.h"
+#include "Sound.h"
 
 void Video::Color::SetRgb(uint8_t r, uint8_t g, uint8_t b)
 {
@@ -31,13 +32,48 @@ volatile int Video::yMod;
 volatile uint8_t Video::lineBuffer[XResolution];
 uint8_t Video::tileMap[XTileCount * YTileCount];
 uint8_t Video::tilePattern[2 * TileHeight * 256];
+Video::Sprite Video::sprites[SpriteCount];
+uint8_t Video::spritePattern[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x70, 0x00,
+	0x00, 0x77, 0x77, 0x00, 0x00, 0x87, 0x87, 0x00,
+	0x00, 0x87, 0x87, 0x00, 0x00, 0x77, 0x77, 0x00,
+	0x00, 0x07, 0x70, 0x00, 0x00, 0x22, 0x22, 0x00,
+	0x02, 0x22, 0x22, 0x20, 0x02, 0x02, 0x20, 0x20,
+	0x06, 0x02, 0x20, 0x60, 0x00, 0x01, 0x10, 0x00,
+	0x00, 0x10, 0x01, 0x00, 0x00, 0x10, 0x01, 0x00,
+	0x00, 0x10, 0x01, 0x00, 0x00, 0x60, 0x06, 0x00,
+    //
+    0x00, 0x30, 0x30, 0x00, 0x00, 0x30, 0x30, 0x00,
+	0x03, 0x33, 0x33, 0x00, 0x03, 0x33, 0x33, 0x00,
+	0x08, 0x38, 0x33, 0x00, 0x08, 0x38, 0x33, 0x00,
+	0x33, 0x33, 0x33, 0x30, 0x33, 0x33, 0x33, 0x30,
+	0x03, 0x33, 0x33, 0x00, 0x03, 0x33, 0x33, 0x00,
+	0x00, 0x33, 0x33, 0x00, 0x00, 0x33, 0x33, 0x00,
+	0x00, 0x33, 0x30, 0x00, 0x00, 0x03, 0x30, 0x00,
+	0x00, 0x03, 0x33, 0x00, 0x00, 0x00, 0x33, 0x00,
+};
 
 void Video::Initialize()
 {
     InitializeColors();
+    ClearSprites();
     set_sys_clock_khz(Config::SystemClock, true);
-
     InitializePwmDma();
+}
+
+void Video::ClearSprites()
+{
+    for (auto& sprite : sprites) {
+        sprite.y = YResolution;
+    }
+}
+
+void Video::ShowSprite(uint8_t index, uint8_t x, uint8_t y, uint8_t pattern)
+{
+    auto& sprite = sprites[index];
+    sprite.x = x;
+    sprite.y = y;
+    sprite.pattern = pattern;
 }
 
 void Video::InitializeColors()
@@ -152,6 +188,41 @@ void Video::MakeDmaBuffer(uint16_t* pBuffer, uint16_t raster)
             }
         }
         {
+            auto horizontalCount = 0;
+            auto pSprite = sprites + SpriteCount;
+            for (auto i = 0; i < SpriteCount; ++i) {
+                --pSprite;
+                uint8_t yOffset = currentY - pSprite->y;
+                if (yOffset < SpriteHeight) {
+                    uint8_t x = pSprite->x;
+                    auto pPattern = spritePattern +
+                        (static_cast<uint16_t>(pSprite->pattern) << 6);
+                    pPattern += yOffset << 2;
+                    for (auto j = 0; j < SpriteWidth / 2; ++j) {
+                        auto b = *pPattern; //0x44; //
+                        if (x < XResolution) {
+                            auto dot = b >> 4;
+                            if (dot != 0) {
+                                lineBuffer[x] = dot;
+                            }
+                        }
+                        ++x;
+                        if (x < XResolution) {
+                            auto dot = b & 0x0f;
+                            if (dot != 0) {
+                                lineBuffer[x] = dot;
+                            }
+                        }
+                        ++x;
+                        ++pPattern;
+                    }
+                    if (++horizontalCount >= MaxHorizontalSpriteCount) {
+                        break;
+                    }
+                }
+            }
+        }
+        {
             auto pLine = lineBuffer;
             p += HStartPosition;
             for (auto i = 0; i < XResolution; ++i) {
@@ -190,7 +261,8 @@ void Video::Handler()
 		    dma_channel_set_read_addr(dmaChannels[i], dmaBuffer[i], false);
         }
     }
-    if (++currentRaster >= RasterCount) {
+    if (++currentRaster == RasterCount) {
         currentRaster = 0;
+        Sound::MelodyHandler();
     }
 }
