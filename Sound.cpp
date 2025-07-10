@@ -4,7 +4,6 @@
 #include "Sound.h"
 
 uint Sound::pwmSlice;
-uint Sound::pwmChannel;
 bool Sound::enabled;
 Sound::Channel Sound::channels[ChannelCount];
 int Sound::time;
@@ -26,13 +25,11 @@ void Sound::Initialize()
     pwmSlice = pwm_gpio_to_slice_num(Config::Gpio::Sound);
 
     auto pwmConfig = pwm_get_default_config();
-    // pwm_config_set_clkdiv(&pwmConfig, PwmDivision);
     pwm_init(pwmSlice, &pwmConfig, true);
     pwm_set_clkdiv(pwmSlice, PwmDivision);
     pwm_set_wrap(pwmSlice, PwmWrap - 1);
 
-    pwmChannel = pwm_gpio_to_channel(Config::Gpio::Sound);
-    pwm_set_chan_level(pwmSlice, pwmChannel, 0);
+    pwm_set_gpio_level(Config::Gpio::Sound, 0);
 
     pwm_clear_irq(pwmSlice);
     pwm_set_irq_enabled(pwmSlice, true);
@@ -65,7 +62,7 @@ void Sound::PwmHandler()
         if (channel.volume != 0) {
             channel.denom -= StandardToneCycle;
             if (channel.denom < 0) {
-                sum += channel.pWave[channel.offset] * channel.volume / VolumeRate;
+                sum += static_cast<uint16_t>(channel.pWave[channel.offset]) * channel.volume;
                 if (channel.offset++ >= ToneSampleCount) {
                     channel.offset = 0;
                 }
@@ -73,7 +70,12 @@ void Sound::PwmHandler()
             }
         }
     }
-    pwm_set_chan_level(pwmSlice, pwmChannel, sum / ChannelCount / MaxVolume);
+    auto level = sum / (ChannelCount / 2) / MaxVolume;
+    gpio_put(16, level >= PwmWrap);
+    if (level >= PwmWrap) {
+        level = PwmWrap - 1;
+    }
+    pwm_set_gpio_level(Config::Gpio::Sound, level);
 }
 
 void Sound::MelodyHandler()
@@ -84,7 +86,7 @@ void Sound::MelodyHandler()
     if (time < 0) {
         for (auto& channel : channels) {
             if (channel.pMelodyCurrent != nullptr) {
-                if (channel.noteLength-- == 0) {
+                if (--channel.noteLength == 0) {
                     nextNote:
                     auto length = *channel.pMelodyCurrent++;
                     if (length == 0) {
@@ -102,7 +104,7 @@ void Sound::MelodyHandler()
                     auto tone = *channel.pMelodyCurrent++;
                     if (tone != 0) {
                         channel.cycle = cycles[tone - 1];
-                        channel.volume = MaxVolume * VolumeRate;
+                        channel.volume = MaxVolume;
                     }
                     else {
                         channel.volume = 0;
@@ -117,8 +119,4 @@ void Sound::MelodyHandler()
         }
         time += 600 / 2;
     }
-
-    static bool f = false;
-    gpio_put(16, f);
-    f = !f;
 }

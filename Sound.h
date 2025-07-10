@@ -22,11 +22,9 @@ private:
     static constexpr auto PwmDivision = Config::SystemClock * 1000 / (440 * StandardToneCycle) / PwmWrap;
 
     static constexpr auto ToneSampleCount = 32;
-    static constexpr auto MaxVolume = 15;
-    static constexpr auto VolumeRate = 2;
+    static constexpr auto MaxVolume = Tempo / 8;
 private:
     static uint pwmSlice;
-    static uint pwmChannel;
     static bool enabled;
     static Channel channels[ChannelCount];
     static int time;
