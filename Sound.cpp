@@ -53,6 +53,15 @@ void Sound::StartMelody(const uint8_t *pMelody1, const uint8_t *pMelody2)
     enabled = true;
 }
 
+void Sound::StartMelody(const uint8_t *pMelody)
+{
+    enabled = false;
+    channels[0].pMelodyStart = channels[0].pMelodyCurrent = pMelody;
+    channels[0].noteLength = 1;
+    enabled = true;
+}
+
+
 void Sound::PwmHandler()
 {
     pwm_clear_irq(pwmSlice);
@@ -70,8 +79,7 @@ void Sound::PwmHandler()
             }
         }
     }
-    auto level = sum / (ChannelCount / 2) / MaxVolume;
-    gpio_put(16, level >= PwmWrap);
+    auto level = sum / (ChannelCount / 2.5) / MaxVolume;
     if (level >= PwmWrap) {
         level = PwmWrap - 1;
     }

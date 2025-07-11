@@ -6,6 +6,7 @@
 #include "hardware/dma.h"
 #include "Video.h"
 #include "Sound.h"
+#include "ScanKeys.h"
 
 void Video::Color::SetRgb(uint8_t r, uint8_t g, uint8_t b)
 {
@@ -252,6 +253,8 @@ void Video::MakeDmaBuffer(uint16_t* pBuffer, uint16_t raster)
 
 void Video::Handler()
 {
+    extern uint8_t TimerCount;
+
     volatile auto status = dma_hw->ints0;
     dma_hw->ints0 = status; // Clear IRQ
 
@@ -263,6 +266,7 @@ void Video::Handler()
     }
     if (++currentRaster == RasterCount) {
         currentRaster = 0;
+        ++TimerCount;
         Sound::MelodyHandler();
     }
 }

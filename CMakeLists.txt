@@ -33,9 +33,13 @@ project(bbb C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+set(PICO_TINYUSB_HOST 1)
+
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(bbb bbb.cpp Video.cpp Sound.cpp)
+add_executable(bbb 
+    bbb.cpp Video.cpp Sound.cpp ScanKeys.cpp
+)
 
 pico_set_program_name(bbb "bbb")
 pico_set_program_version(bbb "0.1")
@@ -49,12 +53,16 @@ target_link_libraries(bbb
     pico_stdlib
     hardware_pwm
     hardware_dma
+    tinyusb_host
+    tinyusb_board
 )
 
 # Add the standard include files to the build
 target_include_directories(bbb PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${PICO_SDK_PATH}/lib/tinyusb/src
+    ${PICO_SDK_PATH}/lib/tinyusb/src/class/hid
+    ${PICO_SDK_PATH}/lib/tinyusb/src/portable/raspberrypi/rp2040
 )
 
 pico_add_extra_outputs(bbb)
-

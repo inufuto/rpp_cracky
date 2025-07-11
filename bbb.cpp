@@ -1,7 +1,10 @@
-#include <stdio.h>
+#include <stdint.h>
 #include "pico/stdlib.h"
+#include "bsp/board_api.h"
 #include "Video.h"
 #include "Sound.h"
+#include "ScanKeys.h"
+
 
 static const uint8_t MonoPattern[] = {
     //	ascii
@@ -61,6 +64,11 @@ static const uint8_t wave3[] = {
 	74,84,104,128,150,172,204,238,
 };
 
+static const uint8_t hit[] = {
+    1,F4, 1,G4, 1,A4, 1,B4, 1,C5, 1,D5, 1,E5, 1,F5,
+    0
+};
+
 static const uint8_t BGM_B[] = {
     N4,C4, N4,G4, N8,C4, N4,G4, N4,A4,
     N8,A4, N8,G4, N8,G4, N8,F4, N8,F4, N8,E4, N8,E4,
@@ -98,11 +106,26 @@ static const uint8_t BGM_C[] = {
     0xff
 };
 
+volatile uint8_t TimerCount;
+
+void WaitTimer(uint8_t t)
+{
+    while (TimerCount < t) {
+        tuh_task();
+    }
+    TimerCount = 0;
+}
+
+static int sx = 0, sy = 0;
+
 int main()
 {
+    // stdio_init_all();
+    InitKeys();
     Sound::Initialize();
     Video::Initialize();
 
+    Sound::SetWave(0, wave1);
     Sound::SetWave(1, wave3);
     Sound::SetWave(2, wave2);
 
@@ -134,16 +157,21 @@ int main()
     Sound::StartMelody(BGM_B, BGM_C);
 
     auto y = 0;
-    auto x = 0;
     while (true) {
+        tuh_task();
+        if (ScanKeys() != 0) {
+            --sx;
+            ++Video::TileMap()[0];
+        }
         Video::ShowSprite(1, 4, y, 1);
-        Video::ShowSprite(0, x, 10, 0);
+        Video::ShowSprite(0, sx, sy, 0);
         // gpio_put(16, true);
         // sleep_ms(300);
         // gpio_put(16, false);
         // sleep_ms(300);
         ++y;
-        ++x;
-        sleep_ms(100);
+        // ++x;
+        WaitTimer(60);
+        Sound::StartMelody(hit);
     }
 }

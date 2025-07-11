@@ -1,0 +1,24 @@
+#pragma once
+
+#define CFG_TUSB_HOST 1
+#define CFG_TUSB_DEVICE 0
+#define CFG_TUD_ENABLED 0
+#define CFG_TUH_ENABLED 1
+#define CFG_TUSB_RHPORT0_MODE 0x01
+#define CFG_TUH_RHPORT0_MODE 0x01
+#define TUH_OPT_RHPORT 0
+#define CFG_TUH_HID 1
+#define CFG_TUH_HID_KEYBOARD 1
+#define CFG_TUH_HID_BOOT 1
+#define CFG_TUSB_MEM_SECTION
+#define CFG_TUSB_MEM_ALIGN __attribute__((aligned(4)))
+#define CFG_TUH_DEVICE_MAX 1
+#define CFG_TUH_ENDPOINT_MAX 4
+#define CFG_TUSB_HOST_DEVICE_MAX 1
+#define CFG_TUSB_HOST_ENUM_BUFFER_SIZE 1024
+#define CFG_TUSB_HOST_CONTROL_BUFFER_SIZE 256
+
+#define CFG_TUH_HID_EPIN_BUFSIZE 64 // HID入力エンドポイントのバッファサイズ
+#define CFG_TUH_HID_EPOUT_BUFSIZE 64 // HID出力エンドポイントのバッファサイズ
+
+#define CFG_TUSB_DEBUG 1

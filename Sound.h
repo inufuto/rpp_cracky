@@ -33,6 +33,7 @@ public:
     static void Initialize();
     static void SetWave(int channelIndex, const uint8_t* pWave);
     static void MelodyHandler();
+    static void StartMelody(const uint8_t* pMelody);
     static void StartMelody(const uint8_t* pMelody1, const uint8_t* pMelody2);
 private:
     static void PwmHandler();
