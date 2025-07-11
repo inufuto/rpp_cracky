@@ -1,43 +1,19 @@
 #pragma once
 #include "Config.h"
 
-class Sound {
-private:
-    struct Channel {
-        const uint8_t* pWave;
-        uint8_t offset;
-        uint8_t volume;
-        int16_t denom;
-        int16_t cycle;
-        const uint8_t* pMelodyStart;
-        const uint8_t* pMelodyCurrent;
-        uint8_t noteLength;
-    };
-private:
-    static constexpr auto Tempo = 160;
-    static constexpr auto ChannelCount = 3;
+constexpr auto Tempo = 160;
+static constexpr auto StandardToneCycle = 24 * 2;
+static constexpr auto PwmWrap = 0x100;
+static constexpr auto PwmDivision = Config::SystemClock * 1000 / (440 * StandardToneCycle) / PwmWrap;
 
-    static constexpr auto StandardToneCycle = 24 * 2;
-    static constexpr auto PwmWrap = 0x100;
-    static constexpr auto PwmDivision = Config::SystemClock * 1000 / (440 * StandardToneCycle) / PwmWrap;
+static constexpr auto ToneSampleCount = 32;
+static constexpr auto MaxVolume = Tempo / 8;
 
-    static constexpr auto ToneSampleCount = 32;
-    static constexpr auto MaxVolume = Tempo / 8;
-private:
-    static uint pwmSlice;
-    static bool enabled;
-    static Channel channels[ChannelCount];
-    static int time;
-    static const uint16_t cycles[];
-public:
-    static void Initialize();
-    static void SetWave(int channelIndex, const uint8_t* pWave);
-    static void MelodyHandler();
-    static void StartMelody(const uint8_t* pMelody);
-    static void StartMelody(const uint8_t* pMelody1, const uint8_t* pMelody2);
-private:
-    static void PwmHandler();
-};
+extern void InitSound();
+extern void SoundHandler();
+
+extern void StartMelody(const uint8_t* pMelody);
+extern void StartMelody(const uint8_t* pMelody1, const uint8_t* pMelody2);
 
 constexpr auto N8 = 6;
 constexpr auto N8L = 8;

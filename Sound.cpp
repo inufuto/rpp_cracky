@@ -3,71 +3,56 @@
 #include "hardware/pwm.h"
 #include "Sound.h"
 
-uint Sound::pwmSlice;
-bool Sound::enabled;
-Sound::Channel Sound::channels[ChannelCount];
-int Sound::time;
-const uint16_t Sound::cycles[] = {
+constexpr auto ChannelCount = 3;
+
+static const uint16_t cycles[] = {
     506,477,451,425,402,379,358,338,319,301,284,268,253,239,225,213,201,189,179,169,159,150,142,134,126,119,113,106,100,95,89,84,80,75,71,67,63,60,56,53
 };
+static const uint8_t wave1[] = {
+    // SquareWave
+	254,254,254,254,254,254,254,254,
+	254,254,254,254,254,254,254,254,
+	0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,
+};
+static const uint8_t wave2[] = {
+	// BassWave
+	254,245,219,183,145,110,81,56,
+	35,18,5,0,5,18,35,50,
+	55,50,35,18,5,0,5,18,
+	35,56,81,110,145,183,219,245,
+};
+static const uint8_t wave3[] = {
+	// PianoWave
+	254,238,204,172,150,128,104,84,
+	74,65,50,36,32,33,25,9,
+	0,9,25,33,32,36,50,65,
+	74,84,104,128,150,172,204,238,
+};
 
-void Sound::Initialize()
+struct Channel {
+    const uint8_t* pWave;
+    uint8_t offset;
+    uint8_t volume;
+    int16_t denom;
+    int16_t cycle;
+    const uint8_t* pMelodyStart;
+    const uint8_t* pMelodyCurrent;
+    uint8_t noteLength;
+};
+
+// static uint pwmSlice;
+static bool enabled;
+Channel soundChannels[ChannelCount];
+static volatile int time;
+
+static void PwmHandler()
 {
-    for (auto& channel : channels) {
-        channel.volume = 0;
-        channel.denom = 0;
-        channel.pMelodyCurrent = nullptr;
-    }
-    time = 0;
-    enabled = true;
-
-    gpio_set_function(Config::Gpio::Sound, GPIO_FUNC_PWM);
-    pwmSlice = pwm_gpio_to_slice_num(Config::Gpio::Sound);
-
-    auto pwmConfig = pwm_get_default_config();
-    pwm_init(pwmSlice, &pwmConfig, true);
-    pwm_set_clkdiv(pwmSlice, PwmDivision);
-    pwm_set_wrap(pwmSlice, PwmWrap - 1);
-
-    pwm_set_gpio_level(Config::Gpio::Sound, 0);
-
-    pwm_clear_irq(pwmSlice);
-    pwm_set_irq_enabled(pwmSlice, true);
-    irq_set_priority(PWM_IRQ_WRAP, 0x40);
-    irq_set_exclusive_handler(PWM_IRQ_WRAP, PwmHandler);
-    irq_set_enabled(PWM_IRQ_WRAP, true);
-}
-
-void Sound::SetWave(int channelIndex, const uint8_t *pWave)
-{
-    channels[channelIndex].pWave = pWave;
-}
-
-void Sound::StartMelody(const uint8_t *pMelody1, const uint8_t *pMelody2)
-{
-    enabled = false;
-    channels[1].pMelodyStart = channels[1].pMelodyCurrent = pMelody1;
-    channels[1].noteLength = 1;
-    channels[2].pMelodyStart = channels[2].pMelodyCurrent = pMelody2;
-    channels[2].noteLength = 1;
-    enabled = true;
-}
-
-void Sound::StartMelody(const uint8_t *pMelody)
-{
-    enabled = false;
-    channels[0].pMelodyStart = channels[0].pMelodyCurrent = pMelody;
-    channels[0].noteLength = 1;
-    enabled = true;
-}
-
-
-void Sound::PwmHandler()
-{
+    auto pwmSlice = pwm_gpio_to_slice_num(Config::Gpio::Sound);
     pwm_clear_irq(pwmSlice);
 
     uint16_t sum = 0;
-    for (auto& channel : channels) {
+    for (auto& channel : soundChannels) {
         if (channel.volume != 0) {
             channel.denom -= StandardToneCycle;
             if (channel.denom < 0) {
@@ -86,13 +71,63 @@ void Sound::PwmHandler()
     pwm_set_gpio_level(Config::Gpio::Sound, level);
 }
 
-void Sound::MelodyHandler()
+void InitSound()
+{
+    soundChannels[0].pWave = wave1;
+    soundChannels[1].pWave = wave3;
+    soundChannels[2].pWave = wave2;
+    for (auto& channel : soundChannels) {
+        channel.volume = 0;
+        channel.denom = 0;
+        channel.pMelodyCurrent = nullptr;
+    }
+    time = 0;
+    enabled = true;
+
+    gpio_set_function(Config::Gpio::Sound, GPIO_FUNC_PWM);
+    auto pwmSlice = pwm_gpio_to_slice_num(Config::Gpio::Sound);
+
+    auto pwmConfig = pwm_get_default_config();
+    pwm_init(pwmSlice, &pwmConfig, true);
+    pwm_set_clkdiv(pwmSlice, PwmDivision);
+    pwm_set_wrap(pwmSlice, PwmWrap - 1);
+
+    pwm_set_gpio_level(Config::Gpio::Sound, 0);
+
+    pwm_clear_irq(pwmSlice);
+    pwm_set_irq_enabled(pwmSlice, true);
+    irq_set_priority(PWM_IRQ_WRAP, 0x40);
+    irq_set_exclusive_handler(PWM_IRQ_WRAP, PwmHandler);
+    irq_set_enabled(PWM_IRQ_WRAP, true);
+}
+
+void StartMelody(const uint8_t *pMelody1, const uint8_t *pMelody2)
+{
+    enabled = false;
+    soundChannels[1].pMelodyStart = soundChannels[1].pMelodyCurrent = pMelody1;
+    soundChannels[1].noteLength = 1;
+    soundChannels[2].pMelodyStart = soundChannels[2].pMelodyCurrent = pMelody2;
+    soundChannels[2].noteLength = 1;
+    enabled = true;
+}
+
+void StartMelody(const uint8_t *pMelody)
+{
+    enabled = false;
+    soundChannels[0].pMelodyStart = soundChannels[0].pMelodyCurrent = pMelody;
+    soundChannels[0].noteLength = 1;
+    enabled = true;
+}
+
+
+
+void SoundHandler()
 {
     if (!enabled) return;
 
     time -= Tempo;
     if (time < 0) {
-        for (auto& channel : channels) {
+        for (auto& channel : soundChannels) {
             if (channel.pMelodyCurrent != nullptr) {
                 if (--channel.noteLength == 0) {
                     nextNote:

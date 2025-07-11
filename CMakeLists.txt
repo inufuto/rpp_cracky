@@ -38,7 +38,8 @@ set(PICO_TINYUSB_HOST 1)
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(bbb 
-    bbb.cpp Video.cpp Sound.cpp ScanKeys.cpp
+    bbb.cpp Ntsc.cpp Sound.cpp ScanKeys.cpp
+    Vram.cpp Chars.cpp
 )
 
 pico_set_program_name(bbb "bbb")
