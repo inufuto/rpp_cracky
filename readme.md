@@ -13,4 +13,4 @@
 
 ## 接続
 
-KenKenMkIISRさんのΡΟΠΗ for Raspberry Pi Pico(https://github.com/KenKenMkIISR/ROPE-RP2040)の「Raspberry Pi Pico用回路図」と同じです。(RP2040-Zeroには対応していません)
+KenKenMkIISRさんのΡΟΠΗ for Raspberry Pi Pico( https://github.com/KenKenMkIISR/ROPE-RP2040 )の「Raspberry Pi Pico用回路図」と同じです。(RP2040-Zeroには対応していません)
