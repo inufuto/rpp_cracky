@@ -4,9 +4,8 @@
 #include <tusb.h>
 #include "Ntsc.h"
 #include "Sound.h"
-#include "Main.h"
 #include "ScanKeys.h"
-#include "Print.h"
+#include "Main.h"
 
 volatile uint8_t TimerCount;
 
