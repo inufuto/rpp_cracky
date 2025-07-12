@@ -2,18 +2,23 @@
 #include "Config.h"
 
 constexpr auto Tempo = 160;
-static constexpr auto StandardToneCycle = 24 * 2;
-static constexpr auto PwmWrap = 0x100;
-static constexpr auto PwmDivision = Config::SystemClock * 1000 / (440 * StandardToneCycle) / PwmWrap;
-
-static constexpr auto ToneSampleCount = 32;
-static constexpr auto MaxVolume = Tempo / 8;
+static constexpr auto MaxVolume = Tempo / 5;
 
 extern void InitSound();
 extern void SoundHandler();
 
-extern void StartMelody(const uint8_t* pMelody);
-extern void StartMelody(const uint8_t* pMelody1, const uint8_t* pMelody2);
+extern void Sound_Loose();
+extern void Sound_Hit();
+extern void Sound_Beep();
+extern void Sound_Start();
+extern void Sound_Clear();
+extern void Sound_GameOver();
+extern void StartBGM();
+extern void StopBGM();
+
+// extern void StartMelody(const uint8_t* pMelody);
+// extern void StartMelody(const uint8_t* pMelody1, const uint8_t* pMelody2);
+// extern void StartEffect();
 
 constexpr auto N8 = 6;
 constexpr auto N8L = 8;

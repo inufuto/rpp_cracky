@@ -28,7 +28,7 @@ set(PICO_BOARD pico CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(bbb C CXX ASM)
+project(cracky C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
@@ -37,20 +37,21 @@ set(PICO_TINYUSB_HOST 1)
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(bbb 
-    bbb.cpp Ntsc.cpp Sound.cpp ScanKeys.cpp
-    Vram.cpp Chars.cpp
+add_executable(cracky 
+    cracky.cpp Ntsc.cpp Sound.cpp ScanKeys.cpp
+    Vram.cpp Sprite.cpp Chars.cpp Print.cpp Math.cpp
+    Destruction.cpp Main.cpp Man.cpp Monster.cpp
+    Movable.cpp Stage.cpp Stages.cpp Status.cpp
 )
 
-pico_set_program_name(bbb "bbb")
-pico_set_program_version(bbb "0.1")
+pico_set_program_name(cracky "cracky")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(bbb 0)
-pico_enable_stdio_usb(bbb 0)
+pico_enable_stdio_uart(cracky 0)
+pico_enable_stdio_usb(cracky 0)
 
 # Add the standard library to the build
-target_link_libraries(bbb
+target_link_libraries(cracky
     pico_stdlib
     hardware_pwm
     hardware_dma
@@ -59,11 +60,11 @@ target_link_libraries(bbb
 )
 
 # Add the standard include files to the build
-target_include_directories(bbb PRIVATE
+target_include_directories(cracky PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${PICO_SDK_PATH}/lib/tinyusb/src
     ${PICO_SDK_PATH}/lib/tinyusb/src/class/hid
     ${PICO_SDK_PATH}/lib/tinyusb/src/portable/raspberrypi/rp2040
 )
 
-pico_add_extra_outputs(bbb)
+pico_add_extra_outputs(cracky)

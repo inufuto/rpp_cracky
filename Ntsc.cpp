@@ -1,14 +1,24 @@
 #include <stdint.h>
 #include <memory.h>
-#include "pico/stdlib.h"
-#include "hardware/clocks.h"
-#include "hardware/pwm.h"
-#include "hardware/dma.h"
+#include <pico/stdlib.h>
+#include <hardware/clocks.h>
+#include <hardware/pwm.h>
+#include <hardware/dma.h>
+#include <tusb.h>
 #include "Ntsc.h"
 #include "Sound.h"
 #include "ScanKeys.h"
 
 static constexpr auto ColorCount = 16;
+
+static const uint8_t PaletteValues[] = {
+	0x00, 0x00, 0x00, 0x5f, 0x3f, 0xdf, 0xff, 0x00,
+	0x00, 0xdf, 0x9f, 0xdf, 0x00, 0xff, 0x00, 0x00,
+	0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff,
+	0x00, 0x00, 0x00, 0x7f, 0x7f, 0x7f, 0xdf, 0x9f,
+	0x00, 0xbf, 0x5f, 0x5f, 0x00, 0x7f, 0x00, 0x00,
+	0x8c, 0xea, 0xff, 0xdf, 0x3f, 0xbf, 0xbf, 0xbf,
+};
 
 static constexpr auto TileWidth = 4;
 static constexpr auto TileHeight = 8;
@@ -62,25 +72,16 @@ static volatile int currentY;
 static volatile uint8_t* pTileRow;
 static volatile int yMod;
 
-SpriteAttribute spriteAttributes[SpriteCount];
-
-static void ClearSprites()
-{
-    for (auto& sprite : spriteAttributes) {
-        sprite.y = YResolution;
-    }
-}
+SpriteAttribute SpriteAttributes[SpriteCount];
 
 static void InitializeColors()
 {
-    for (auto i = 0; i < 8; ++i) {
-		colors[i].SetRgb(255 * ((i >> 1) & 1), 255 * ((i >> 2) & 1), 255 * (i & 1));
-	}
-	for (auto i = 0; i < 8; ++i) {
-        colors[8 + i].SetRgb(128 * (i & 1), 128 * ((i >> 1) & 1), 128 * ((i >> 2) & 1));
-	}
-	for (auto i = 16; i < 256 ; ++i) {
-        colors[i].SetRgb(255, 255, 255);
+    auto pSource = PaletteValues;
+    for (auto i = 0; i < ColorCount; ++i) {
+        auto r = *pSource++;
+        auto g = *pSource++;
+        auto b = *pSource++;
+		colors[i].SetRgb(r, g, b);
 	}
 }
 
@@ -140,7 +141,7 @@ static void MakeDmaBuffer(uint16_t* pBuffer, uint16_t raster)
         }
         {
             auto horizontalCount = 0;
-            auto pSprite = spriteAttributes + SpriteCount;
+            auto pSprite = SpriteAttributes + SpriteCount;
             for (auto i = 0; i < SpriteCount; ++i) {
                 --pSprite;
                 uint8_t yOffset = currentY - pSprite->y;
@@ -273,14 +274,16 @@ static void InitializePwmDma()
 void InitNtsc()
 {
     InitializeColors();
-    ClearSprites();
+    for (auto& sprite : SpriteAttributes) {
+        sprite.y = YResolution;
+    }
     set_sys_clock_khz(Config::SystemClock, true);
     InitializePwmDma();
 }
 
 void ShowSprite(uint8_t index, uint8_t x, uint8_t y, uint8_t pattern)
 {
-    auto& sprite = spriteAttributes[index];
+    auto& sprite = SpriteAttributes[index];
     sprite.x = x;
     sprite.y = y;
     sprite.pattern = pattern;

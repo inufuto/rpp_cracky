@@ -1,9 +1,9 @@
 #include <stdint.h>
-#include "tusb.h"
-#include "hid.h"
+#include <tusb.h>
+#include <hid.h>
 #include "ScanKeys.h"
 
-static uint8_t LastKeyBits;
+static volatile uint8_t LastKeyBits;
 
 struct {
     uint8_t code;
@@ -33,7 +33,7 @@ void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_re
 
 void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, const uint8_t *report, uint16_t len)
 {   
-    LastKeyBits = 0;
+    auto bits = 0;
     auto pMap = KeyMap;
     for (int i = 2; i < 8; i++) {
         while (true) {
@@ -42,22 +42,19 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, const uint8_
                 break;
             }
             if (code == report[i]) {
-                LastKeyBits |= pMap->bit;
+                bits |= pMap->bit;
             }
             ++pMap;
         }
     }
+    LastKeyBits = bits;
     tuh_hid_receive_report(dev_addr, instance);
 }
 
 }
 
-void UpdateKeys()
-{
-    tuh_task();
-}
-
 uint8_t ScanKeys()
 {
+    tuh_task();
     return LastKeyBits;
 }

@@ -13,7 +13,6 @@ struct SpriteAttribute {
     uint8_t x;
     uint8_t pattern;
 };
-extern SpriteAttribute spriteAttributes[];
+extern SpriteAttribute SpriteAttributes[];
 
 extern void InitNtsc();
-extern void ShowSprite(uint8_t index, uint8_t x, uint8_t y, uint8_t pattern);
